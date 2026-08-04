@@ -1,0 +1,250 @@
+// Communication Mall CRM — Prisma schema
+// Core flow: Quote → Service Order → Invoice
+// Catalogs: Equipment inventory (physical parts) + Products/services (Tele Express price list, MRC/NRC)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ------------------------------------------------------------------
+// Users / auth
+// ------------------------------------------------------------------
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(STAFF)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ------------------------------------------------------------------
+// Customers
+// ------------------------------------------------------------------
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String // contact / company name
+  company   String?
+  email     String?
+  phone     String?
+  address   String?
+  city      String?
+  state     String?
+  zip       String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quotes        Quote[]
+  serviceOrders ServiceOrder[]
+  invoices      Invoice[]
+
+  @@index([name])
+}
+
+// ------------------------------------------------------------------
+// Catalogs
+// ------------------------------------------------------------------
+
+// Physical equipment / parts kept in stock.
+model Equipment {
+  id           String   @id @default(cuid())
+  sku          String   @unique
+  name         String
+  description  String?
+  category     String?
+  unitCost     Float    @default(0)
+  unitPrice    Float    @default(0)
+  quantityOnHand Int    @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  lineItems LineItem[]
+
+  @@index([name])
+}
+
+enum ChargeType {
+  MRC // Monthly recurring charge
+  NRC // Non-recurring (one-time) charge
+  BOTH
+}
+
+// Tele Express style products & services price list.
+model Product {
+  id          String     @id @default(cuid())
+  code        String     @unique
+  name        String
+  description String?
+  category    String?
+  chargeType  ChargeType @default(NRC)
+  mrc         Float      @default(0) // monthly recurring charge
+  nrc         Float      @default(0) // one-time charge
+  active      Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  lineItems LineItem[]
+
+  @@index([name])
+  @@index([category])
+}
+
+// ------------------------------------------------------------------
+// Documents: Quote / ServiceOrder / Invoice
+// ------------------------------------------------------------------
+
+enum DocType {
+  QUOTE
+  ORDER
+  INVOICE
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+  CONVERTED
+}
+
+enum OrderStatus {
+  SCHEDULED
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+  INVOICED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  VOID
+}
+
+// A shared line item that can belong to a quote, an order, or an invoice.
+// Exactly one of quoteId / serviceOrderId / invoiceId is set.
+model LineItem {
+  id          String  @id @default(cuid())
+  description String
+  quantity    Float   @default(1)
+  // For one-time priced items (equipment, NRC products, custom): unit price.
+  unitPrice   Float   @default(0)
+  // For recurring products: monthly recurring charge (informational; total below is one-time).
+  mrc         Float   @default(0)
+  lineTotal   Float   @default(0) // quantity * unitPrice (the billable one-time amount)
+
+  // Optional links to a catalog source
+  productId   String?
+  product     Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
+  equipmentId String?
+  equipment   Equipment? @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+
+  quoteId        String?
+  quote          Quote?        @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  serviceOrderId String?
+  serviceOrder   ServiceOrder? @relation(fields: [serviceOrderId], references: [id], onDelete: Cascade)
+  invoiceId      String?
+  invoice        Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  sortOrder Int @default(0)
+}
+
+model Quote {
+  id         String      @id @default(cuid())
+  number     String      @unique
+  customerId String
+  customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  status     QuoteStatus @default(DRAFT)
+  notes      String?
+  taxRate    Float       @default(0)
+  subtotal   Float       @default(0)
+  taxAmount  Float       @default(0)
+  total      Float       @default(0)
+  mrcTotal   Float       @default(0) // sum of monthly recurring charges (informational)
+  validUntil DateTime?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  lineItems     LineItem[]
+  serviceOrders ServiceOrder[]
+
+  @@index([customerId])
+  @@index([status])
+}
+
+model ServiceOrder {
+  id          String      @id @default(cuid())
+  number      String      @unique
+  customerId  String
+  customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  quoteId     String?
+  quote       Quote?      @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  status      OrderStatus @default(SCHEDULED)
+  notes       String?
+  scheduledAt DateTime?
+  completedAt DateTime?
+  taxRate     Float       @default(0)
+  subtotal    Float       @default(0)
+  taxAmount   Float       @default(0)
+  total       Float       @default(0)
+  mrcTotal    Float       @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  lineItems LineItem[]
+  invoices  Invoice[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  number         String        @unique
+  customerId     String
+  customer       Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  serviceOrderId String?
+  serviceOrder   ServiceOrder? @relation(fields: [serviceOrderId], references: [id], onDelete: SetNull)
+  status         InvoiceStatus @default(DRAFT)
+  notes          String?
+  taxRate        Float         @default(0)
+  subtotal       Float         @default(0)
+  taxAmount      Float         @default(0)
+  total          Float         @default(0)
+  mrcTotal       Float         @default(0)
+  issuedAt       DateTime?
+  dueDate        DateTime?
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  lineItems LineItem[]
+
+  @@index([customerId])
+  @@index([status])
+}
+
+// Simple auto-incrementing counters for human-friendly document numbers.
+model Counter {
+  key   String @id // e.g. "QUOTE", "ORDER", "INVOICE"
+  value Int    @default(0)
+}
