@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
 import { nextNumber, totals, cents, getCompany } from './db';
 import { today, addDays } from './format';
@@ -1000,6 +1001,67 @@ export async function saveCompany(formData) {
     },
   });
   revalidatePath('/settings');
+}
+
+/* ---------------- team members (users) ---------------- */
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const settingsErr = (m) => redirect('/settings?err=' + encodeURIComponent(m));
+const settingsOk = (m) => redirect('/settings?ok=' + encodeURIComponent(m));
+
+export async function createUser(formData) {
+  await requireAdmin();
+  const name = str(formData.get('name'));
+  const email = str(formData.get('email')).toLowerCase();
+  const password = String(formData.get('password') || '');
+  const role = str(formData.get('role')) === 'admin' ? 'admin' : 'tech';
+
+  if (!name) settingsErr('Please enter their name.');
+  if (!EMAIL_RE.test(email)) settingsErr('Please enter a valid email address.');
+  if (password.length < 10) settingsErr('Password must be at least 10 characters.');
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) settingsErr('Someone already uses that email address.');
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  await prisma.user.create({ data: { name, email, passwordHash, role } });
+  revalidatePath('/settings');
+  settingsOk(`${name} can now sign in with ${email}.`);
+}
+
+export async function resetPassword(formData) {
+  await requireAdmin();
+  const id = str(formData.get('id'));
+  const password = String(formData.get('password') || '');
+  if (!id) settingsErr('Could not find that team member.');
+  if (password.length < 10) settingsErr('New password must be at least 10 characters.');
+
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) settingsErr('Could not find that team member.');
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  await prisma.user.update({ where: { id }, data: { passwordHash } });
+  revalidatePath('/settings');
+  settingsOk(`Password updated for ${user.name}.`);
+}
+
+export async function deleteUser(formData) {
+  const me = await requireAdmin();
+  const id = str(formData.get('id'));
+  if (!id) settingsErr('Could not find that team member.');
+  if (id === me.id) settingsErr('You can’t remove your own account.');
+
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) settingsErr('Could not find that team member.');
+
+  if (user.role === 'admin') {
+    const admins = await prisma.user.count({ where: { role: 'admin' } });
+    if (admins <= 1) settingsErr('You need at least one admin account.');
+  }
+
+  await prisma.user.delete({ where: { id } });
+  revalidatePath('/settings');
+  settingsOk(`Removed ${user.name}.`);
 }
 
 /* ---------------- leads / pipeline ---------------- */
