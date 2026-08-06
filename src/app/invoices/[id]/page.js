@@ -12,6 +12,7 @@ export default async function InvoicePage({ params, searchParams }) {
   const invoice = await getInvoice(params.id);
   if (!invoice) notFound();
 
+  const editId = searchParams?.edit;
   const emailState = searchParams?.email;
   const emailWhy = searchParams?.why;
   const canEmail = emailConfigured();
@@ -87,7 +88,7 @@ export default async function InvoicePage({ params, searchParams }) {
           </div>
         </div>
         <div className="card-body card-body--tight">
-          <LineTable items={invoice.items} />
+          <LineTable items={invoice.items} editable={invoice.status !== 'Paid'} editId={editId} kind="invoice" docId={invoice.id} unitLabel="Unit" />
           <div className="card-body">
             <Totals doc={invoice} totals={t} paid={invoice.amountPaid} />
           </div>

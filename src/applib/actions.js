@@ -280,14 +280,17 @@ export async function updateQuoteLine(formData) {
   const quote = await prisma.quote.findUnique({ where: { id: quoteId }, include: { order: true } });
   if (!quote || quote.order) return;
 
+  const description = formData.get('description');
   await prisma.lineItem.update({
     where: { id: formData.get('lineId') },
     data: {
       qty: Math.max(0, num(formData.get('qty'), 1)),
       unitPrice: cents(num(formData.get('unitPrice'))),
+      ...(description != null ? { description: str(description) } : {}),
     },
   });
   revalidatePath(`/quotes/${quoteId}`);
+  redirect(`/quotes/${quoteId}`);
 }
 
 export async function removeQuoteLine(formData) {
@@ -599,14 +602,17 @@ export async function updatePOLine(formData) {
   const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } });
   if (!po) return;
 
+  const description = formData.get('description');
   await prisma.lineItem.update({
     where: { id: formData.get('lineId') },
     data: {
       qty: Math.max(0, num(formData.get('qty'), 1)),
       unitPrice: cents(num(formData.get('unitPrice'))),
+      ...(description != null ? { description: str(description) } : {}),
     },
   });
   revalidatePath(`/purchase-orders/${poId}`);
+  redirect(`/purchase-orders/${poId}`);
 }
 
 export async function removePOLine(formData) {
@@ -1140,4 +1146,75 @@ export async function deleteInstalled(formData) {
   await requireAdmin();
   await prisma.installedEquipment.delete({ where: { id: formData.get('id') } });
   revalidatePath('/installed');
+}
+
+
+/* ---------------- inline line editing (added) ---------------- */
+
+export async function updateOrderLine(formData) {
+  await requireUser();
+  const orderId = formData.get('orderId');
+  const lineId = formData.get('lineId');
+
+  await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id: orderId }, include: { invoice: true } });
+    const li = await tx.lineItem.findUnique({ where: { id: lineId } });
+    if (!order || order.invoice || !li) return;
+
+    const newQty = Math.max(0, num(formData.get('qty'), li.qty));
+
+    // Keep reserved stock accurate when a physical part's quantity changes.
+    if (li.inventoryId) {
+      const delta = Math.round(newQty) - Math.round(li.qty);
+      if (delta !== 0) {
+        const part = await tx.inventoryItem.findUnique({ where: { id: li.inventoryId } });
+        if (part) {
+          await tx.inventoryItem.update({
+            where: { id: part.id },
+            data: { stock: Math.max(0, part.stock - delta) },
+          });
+        }
+      }
+    }
+
+    const description = formData.get('description');
+    await tx.lineItem.update({
+      where: { id: lineId },
+      data: {
+        qty: newQty,
+        unitPrice: cents(num(formData.get('unitPrice'), li.unitPrice)),
+        ...(description != null ? { description: str(description) } : {}),
+      },
+    });
+  });
+
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath('/inventory');
+  redirect(`/orders/${orderId}`);
+}
+
+export async function updateInvoiceLine(formData) {
+  await requireUser();
+  const invoiceId = formData.get('invoiceId');
+  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
+  if (!invoice) return;
+
+  const description = formData.get('description');
+  await prisma.lineItem.update({
+    where: { id: formData.get('lineId') },
+    data: {
+      qty: Math.max(0, num(formData.get('qty'), 1)),
+      unitPrice: cents(num(formData.get('unitPrice'))),
+      ...(description != null ? { description: str(description) } : {}),
+    },
+  });
+  revalidatePath(`/invoices/${invoiceId}`);
+  redirect(`/invoices/${invoiceId}`);
+}
+
+export async function removeInvoiceLine(formData) {
+  await requireUser();
+  const invoiceId = formData.get('invoiceId');
+  await prisma.lineItem.delete({ where: { id: formData.get('lineId') } });
+  revalidatePath(`/invoices/${invoiceId}`);
 }

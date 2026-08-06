@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getQuote, getCatalog, getCompany, getCustomers, totals } from '@/applib/db';
 import { money, day, qty } from '@/applib/format';
-import { Chain, Chip, Totals } from '@/appui/Doc';
+import { Chain, Chip, LineTable, Totals } from '@/appui/Doc';
 import { emailConfigured } from '@/applib/email';
 import {
   emailQuote,
@@ -33,6 +33,7 @@ export default async function QuotePage({ params, searchParams }) {
   const invoice = order?.invoice || null;
   const t = totals(quote);
   const locked = Boolean(order);
+  const editId = searchParams?.edit;
   const emailState = searchParams?.email;
   const emailWhy = searchParams?.why;
   const canEmail = emailConfigured();
@@ -118,90 +119,7 @@ export default async function QuotePage({ params, searchParams }) {
           </div>
         ) : (
           <div className="card-body card-body--tight">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 80 }}>Type</th>
-                  <th style={{ width: 120 }}>SKU</th>
-                  <th>Description</th>
-                  <th className="num" style={{ width: 90 }}>Qty</th>
-                  <th className="num" style={{ width: 120 }}>Unit price</th>
-                  <th className="num" style={{ width: 110 }}>Amount</th>
-                  <th style={{ width: 130 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {quote.items.map((li) => (
-                  <tr key={li.id}>
-                    <td className="muted">{li.kind}</td>
-                    <td className="doc-no muted">{li.sku}</td>
-                    <td>
-                      {li.description}
-                      {li.monthly > 0 ? (
-                        <div className="note" style={{ color: 'var(--signal)' }}>
-                          + {money(li.qty * li.monthly)}/mo recurring
-                        </div>
-                      ) : null}
-                    </td>
-                    {locked ? (
-                      <>
-                        <td className="num">{qty(li.qty)}</td>
-                        <td className="num">{money(li.unitPrice)}</td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="num">
-                          <form action={updateQuoteLine} id={`line-${li.id}`}>
-                            <input type="hidden" name="quoteId" value={quote.id} />
-                            <input type="hidden" name="lineId" value={li.id} />
-                            <input
-                              name="qty"
-                              type="number"
-                              step="0.25"
-                              min="0"
-                              defaultValue={li.qty}
-                              aria-label="Quantity"
-                            />
-                          </form>
-                        </td>
-                        <td className="num">
-                          <input
-                            form={`line-${li.id}`}
-                            name="unitPrice"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            defaultValue={li.unitPrice}
-                            aria-label="Unit price"
-                          />
-                        </td>
-                      </>
-                    )}
-                    <td className="num strong">{money(li.qty * li.unitPrice)}</td>
-                    <td className="num no-print">
-                      {locked ? null : (
-                        <>
-                          <button
-                            form={`line-${li.id}`}
-                            className="btn btn--sm"
-                            type="submit"
-                          >
-                            Update
-                          </button>{' '}
-                          <form action={removeQuoteLine} className="inline-form">
-                            <input type="hidden" name="quoteId" value={quote.id} />
-                            <input type="hidden" name="lineId" value={li.id} />
-                            <button className="btn btn--ghost btn--sm" type="submit">
-                              Remove
-                            </button>
-                          </form>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <LineTable items={quote.items} editable={!locked} editId={editId} kind="quote" docId={quote.id} unitLabel="Unit price" />
             <div className="card-body">
               <Totals doc={quote} totals={t} />
             </div>

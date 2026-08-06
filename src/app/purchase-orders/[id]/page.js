@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getPurchaseOrder, getInventory, totals } from '@/applib/db';
 import { money, day } from '@/applib/format';
-import { Chip } from '@/appui/Doc';
+import { Chip, LineTable } from '@/appui/Doc';
 import PrintButton from '@/appui/PrintButton';
 import {
   updatePurchaseOrder,
@@ -16,9 +16,10 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-export default async function PurchaseOrderPage({ params }) {
+export default async function PurchaseOrderPage({ params, searchParams }) {
   const po = await getPurchaseOrder(params.id);
   if (!po) notFound();
+  const editId = searchParams?.edit;
 
   const inventory = await getInventory();
   const order = po.order;
@@ -68,66 +69,7 @@ export default async function PurchaseOrderPage({ params }) {
           </div>
         ) : (
           <div className="card-body card-body--tight">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 80 }}>Type</th>
-                  <th style={{ width: 120 }}>SKU</th>
-                  <th>Description</th>
-                  <th className="num" style={{ width: 90 }}>Qty</th>
-                  <th className="num" style={{ width: 120 }}>Unit cost</th>
-                  <th className="num" style={{ width: 110 }}>Amount</th>
-                  <th style={{ width: 130 }} className="no-print"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {po.items.map((li) => (
-                  <tr key={li.id}>
-                    <td className="muted">{li.kind}</td>
-                    <td className="doc-no muted">{li.sku}</td>
-                    <td>{li.description}</td>
-                    <td className="num">
-                      <form action={updatePOLine} id={`po-line-${li.id}`}>
-                        <input type="hidden" name="poId" value={po.id} />
-                        <input type="hidden" name="lineId" value={li.id} />
-                        <input
-                          name="qty"
-                          type="number"
-                          step="0.25"
-                          min="0"
-                          defaultValue={li.qty}
-                          aria-label="Quantity"
-                        />
-                      </form>
-                    </td>
-                    <td className="num">
-                      <input
-                        form={`po-line-${li.id}`}
-                        name="unitPrice"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        defaultValue={li.unitPrice}
-                        aria-label="Unit cost"
-                      />
-                    </td>
-                    <td className="num strong">{money(li.qty * li.unitPrice)}</td>
-                    <td className="num no-print">
-                      <button form={`po-line-${li.id}`} className="btn btn--sm" type="submit">
-                        Update
-                      </button>{' '}
-                      <form action={removePOLine} className="inline-form">
-                        <input type="hidden" name="poId" value={po.id} />
-                        <input type="hidden" name="lineId" value={li.id} />
-                        <button className="btn btn--ghost btn--sm" type="submit">
-                          Remove
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <LineTable items={po.items} editable editId={editId} kind="po" docId={po.id} unitLabel="Unit cost" />
             <div className="card-body">
               <div className="totals">
                 <div className="totals-row">

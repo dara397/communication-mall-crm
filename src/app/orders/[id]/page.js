@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getOrder, getCatalog, getCompany, totals } from '@/applib/db';
 import { money, day, qty } from '@/applib/format';
-import { Chain, Chip, Totals } from '@/appui/Doc';
+import { Chain, Chip, LineTable, Totals } from '@/appui/Doc';
 import {
   updateOrder,
   addCatalogToOrder,
@@ -14,7 +14,7 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-export default async function OrderPage({ params }) {
+export default async function OrderPage({ params, searchParams }) {
   const order = await getOrder(params.id);
   if (!order) notFound();
 
@@ -24,6 +24,7 @@ export default async function OrderPage({ params }) {
   const customer = order.customer;
   const t = totals(order);
   const locked = Boolean(invoice);
+  const editId = searchParams?.edit;
 
   return (
     <>
@@ -68,42 +69,7 @@ export default async function OrderPage({ params }) {
           <span className="note">Carried over from {quote?.number}, plus anything added on site</span>
         </div>
         <div className="card-body card-body--tight">
-          <table>
-            <thead>
-              <tr>
-                <th style={{ width: 80 }}>Type</th>
-                <th style={{ width: 120 }}>SKU</th>
-                <th>Description</th>
-                <th className="num" style={{ width: 70 }}>Qty</th>
-                <th className="num" style={{ width: 100 }}>Unit</th>
-                <th className="num" style={{ width: 110 }}>Amount</th>
-                <th style={{ width: 90 }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {order.items.map((li) => (
-                <tr key={li.id}>
-                  <td className="muted">{li.kind}</td>
-                  <td className="doc-no muted">{li.sku}</td>
-                  <td>{li.description}</td>
-                  <td className="num">{qty(li.qty)}</td>
-                  <td className="num">{money(li.unitPrice)}</td>
-                  <td className="num strong">{money(li.qty * li.unitPrice)}</td>
-                  <td className="num no-print">
-                    {locked ? null : (
-                      <form action={removeOrderLine} className="inline-form">
-                        <input type="hidden" name="orderId" value={order.id} />
-                        <input type="hidden" name="lineId" value={li.id} />
-                        <button className="btn btn--ghost btn--sm" type="submit">
-                          Remove
-                        </button>
-                      </form>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <LineTable items={order.items} editable={!locked} editId={editId} kind="order" docId={order.id} unitLabel="Unit" />
           <div className="card-body">
             <Totals doc={order} totals={t} />
           </div>
