@@ -99,8 +99,8 @@ export default async function QuotePage({ params, searchParams }) {
 
       {locked ? (
         <p className="note" style={{ marginTop: -12, marginBottom: 20 }}>
-          This quote is locked because it was converted. Change the work on the service
-          order instead.
+          This quote was already converted to a service order. You can still adjust these
+          line items, but changes here will not update the service order or invoice.
         </p>
       ) : null}
 
@@ -119,7 +119,7 @@ export default async function QuotePage({ params, searchParams }) {
           </div>
         ) : (
           <div className="card-body card-body--tight">
-            <LineTable items={quote.items} editable={!locked} editId={editId} kind="quote" docId={quote.id} unitLabel="Unit price" />
+            <LineTable items={quote.items} editable editId={editId} kind="quote" docId={quote.id} unitLabel="Unit price" />
             <div className="card-body">
               <Totals doc={quote} totals={t} />
             </div>

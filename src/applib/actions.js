@@ -278,7 +278,7 @@ export async function updateQuoteLine(formData) {
   await requireUser();
   const quoteId = formData.get('quoteId');
   const quote = await prisma.quote.findUnique({ where: { id: quoteId }, include: { order: true } });
-  if (!quote || quote.order) return;
+  if (!quote) return;
 
   const description = formData.get('description');
   await prisma.lineItem.update({
@@ -297,7 +297,7 @@ export async function removeQuoteLine(formData) {
   await requireUser();
   const quoteId = formData.get('quoteId');
   const quote = await prisma.quote.findUnique({ where: { id: quoteId }, include: { order: true } });
-  if (!quote || quote.order) return;
+  if (!quote) return;
 
   await prisma.lineItem.delete({ where: { id: formData.get('lineId') } });
   revalidatePath(`/quotes/${quoteId}`);
@@ -799,7 +799,7 @@ export async function removeOrderLine(formData) {
       include: { invoice: true },
     });
     const li = await tx.lineItem.findUnique({ where: { id: lineId } });
-    if (!order || order.invoice || !li) return;
+    if (!order || !li) return;
 
     if (li.inventoryId) {
       const part = await tx.inventoryItem.findUnique({ where: { id: li.inventoryId } });
@@ -1159,7 +1159,7 @@ export async function updateOrderLine(formData) {
   await prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({ where: { id: orderId }, include: { invoice: true } });
     const li = await tx.lineItem.findUnique({ where: { id: lineId } });
-    if (!order || order.invoice || !li) return;
+    if (!order || !li) return;
 
     const newQty = Math.max(0, num(formData.get('qty'), li.qty));
 

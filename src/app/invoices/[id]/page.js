@@ -88,7 +88,7 @@ export default async function InvoicePage({ params, searchParams }) {
           </div>
         </div>
         <div className="card-body card-body--tight">
-          <LineTable items={invoice.items} editable={invoice.status !== 'Paid'} editId={editId} kind="invoice" docId={invoice.id} unitLabel="Unit" />
+          <LineTable items={invoice.items} editable editId={editId} kind="invoice" docId={invoice.id} unitLabel="Unit" />
           <div className="card-body">
             <Totals doc={invoice} totals={t} paid={invoice.amountPaid} />
           </div>

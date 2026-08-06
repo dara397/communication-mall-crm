@@ -69,7 +69,7 @@ export default async function OrderPage({ params, searchParams }) {
           <span className="note">Carried over from {quote?.number}, plus anything added on site</span>
         </div>
         <div className="card-body card-body--tight">
-          <LineTable items={order.items} editable={!locked} editId={editId} kind="order" docId={order.id} unitLabel="Unit" />
+          <LineTable items={order.items} editable editId={editId} kind="order" docId={order.id} unitLabel="Unit" />
           <div className="card-body">
             <Totals doc={order} totals={t} />
           </div>
