@@ -991,7 +991,7 @@ export async function saveCompany(formData) {
   await prisma.settings.update({
     where: { id: 1 },
     data: {
-      name: str(formData.get('name')) || 'Communication Mall',
+      name: str(formData.get('name')) || 'Tele Express Business Systems',
       tagline: str(formData.get('tagline')),
       address: str(formData.get('address')),
       phone: str(formData.get('phone')),

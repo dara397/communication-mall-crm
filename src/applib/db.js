@@ -53,7 +53,7 @@ export async function getCompany() {
   return prisma.settings.create({
     data: {
       id: 1,
-      name: 'Communication Mall',
+      name: 'Tele Express Business Systems',
       tagline: 'Business telecom, sourced and installed',
       address: '',
       phone: '',

@@ -63,7 +63,7 @@ async function main() {
     update: {},
     create: {
       id: 1,
-      name: 'Communication Mall',
+      name: 'Tele Express Business Systems',
       tagline: 'Business telecom, sourced and installed',
       address: 'Irvine, CA',
       phone: '(949) 555-0140',

@@ -4,7 +4,7 @@ import { auth, signOut } from '@/auth';
 import { getCompany, getNavCounts } from '@/applib/db';
 
 export const metadata = {
-  title: 'Communication Mall CRM',
+  title: 'Tele Express Business Systems',
   description: 'Quotes, service orders, invoices, and equipment inventory.',
 };
 

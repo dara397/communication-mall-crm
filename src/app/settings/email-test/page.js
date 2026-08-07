@@ -14,7 +14,7 @@ async function runTest(formData) {
   const to = String(formData.get('to') || '').trim();
   const result = await sendDocumentEmail({
     to,
-    subject: 'Communication Mall CRM — test email',
+    subject: 'Tele Express Business Systems CRM — test email',
     html: '<p>This is a test from your CRM. If you received it, email is working.</p>',
   });
 
