@@ -137,26 +137,18 @@ const GROUPS = [
   },
 ];
 
-export default function Nav({ counts, company, user, signOutAction }) {
+export default function Nav({ counts, user, signOutAction }) {
   const pathname = usePathname();
-  const initials =
-    (company?.name || '')
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((w) => w[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() || 'CM';
 
   return (
     <nav className="rail">
-      <Link href="/" className="brand">
-        <div className="brand-badge">{initials}</div>
-        <div className="brand-text">
-          <div className="brand-name">{company.name}</div>
-          <div className="brand-sub">{company.tagline}</div>
-        </div>
+      <Link href="/" className="brand" aria-label="Tele Express Business Systems">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          className="brand-logo"
+          src="/telexpress-logo-white.png"
+          alt="Tele Express Business Systems"
+        />
       </Link>
 
       {GROUPS.map((group) => (

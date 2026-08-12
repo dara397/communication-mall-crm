@@ -69,6 +69,7 @@ a:hover { color: var(--signal); }
 .brand-sub { font-size: 12.5px; color: #9fb0ac; margin-top: 1px; }
 .brand-badge { width: 40px; height: 40px; flex: 0 0 auto; border-radius: 11px; background: var(--signal); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 15px; }
 .brand-text { min-width: 0; }
+.brand-logo { display: block; width: 100%; max-width: 205px; height: auto; }
 
 .nav-group { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
 .nav-label {
@@ -369,6 +370,7 @@ input[type='number'] { font-family: var(--mono); text-align: right; }
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 .signin-card .brand-mark { color: var(--signal); margin-bottom: 10px; }
+.signin-logo { display: block; width: 240px; max-width: 84%; height: auto; margin: 0 auto 20px; }
 .signin-card .btn { margin-top: 8px; }
 .signin-error {
   font-size: 13px;

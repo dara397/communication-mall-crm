@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { AuthError } from 'next-auth';
 import { signIn, auth } from '@/auth';
-import { getCompany } from '@/applib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +8,6 @@ export default async function SignInPage({ searchParams }) {
   const session = await auth();
   if (session?.user) redirect('/');
 
-  const company = await getCompany();
   const failed = searchParams?.error === 'credentials';
 
   async function authenticate(formData) {
@@ -29,9 +27,13 @@ export default async function SignInPage({ searchParams }) {
   return (
     <div className="signin">
       <div className="signin-card">
-        <div className="brand-mark">CRM</div>
-        <h1 style={{ marginBottom: 4 }}>{company.name}</h1>
-        <p className="sub" style={{ marginBottom: 24 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          className="signin-logo"
+          src="/telexpress-logo-blue.png"
+          alt="Tele Express Business Systems"
+        />
+        <p className="sub" style={{ marginBottom: 24, textAlign: 'center' }}>
           Sign in to quotes, orders, and invoices.
         </p>
 
